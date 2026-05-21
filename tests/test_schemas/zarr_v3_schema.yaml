@@ -1,0 +1,70 @@
+id: https://zarr.dev/spec/v3/core
+name: zarr_v3_array_spec
+prefixes:
+  linkml: https://w3id.org/linkml/
+  zarr: https://zarr.dev/spec/v3/core/
+
+default_range: string
+
+types:
+  integer:
+    base: int
+    uri: xsd:integer
+  string:
+    base: str
+    uri: xsd:string
+  boolean:
+    base: bool
+    uri: xsd:boolean
+  Any:
+    base: dict
+    uri: linkml:Any
+
+classes:
+  # ==========================================
+  # Core Schema Root Entry Point
+  # ==========================================
+  ZarrArrayMetadata:
+    tree_root: true
+    description: "The metadata structure saved in an array's zarr.json root."
+    attributes:
+      zarr_format:
+        range: integer
+        required: true
+        equals_number: 3
+        description: "Must be exactly 3 for Zarr v3."
+      node_type:
+        range: string
+        required: true
+        equals_string: "array"
+        description: "Must be exactly 'array' for an array object node."
+      shape:
+        range: integer
+        multivalued: true
+        required: true
+        description: "Array of integers defining the total size along each dimension."
+      data_type:
+        range: string
+        required: true
+        description: "The core data type configuration string (e.g., int8, float64, bool)."
+      chunk_grid:
+        range: Any                       # Using Any keeps the validator flat and highly performant
+        required: true
+        description: "The grid architecture rule configuration mapping."
+      chunk_key_encoding:
+        range: Any
+        required: true
+        description: "The strategy used to name/index chunks in the physical storage layer."
+      fill_value:
+        range: string
+        required: true
+        description: "The default scalar fallback value when an unwritten chunk is queried."
+      codecs:
+        range: Any
+        multivalued: true
+        required: false
+        description: "Ordered chain of encoders/decoders passing through bytes transformations."
+      attributes:
+        range: Any
+        required: false
+        description: "User-defined custom arbitrary key-value metadata object extensions."
