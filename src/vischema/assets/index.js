@@ -1,15 +1,19 @@
 // src/vischema/assets/index.js
 export default {
     render({ model, el }) {
-        // Deep helper to extract flattening and depth paths for rendering
+        // Deep helper to extract flattening and depth paths for rendering.
+        // Recurses into both objects and arrays so multivalued list fields
+        // (e.g. LinkML `multivalued: true`) render their items inline.
         function flattenJson(obj, prefix = '', depth = 0) {
             let paths = {};
+            const parentIsArray = Array.isArray(obj);
             for (let key in obj) {
                 const pointerPath = `${prefix}/${key}`;
                 const val = obj[key];
-                const isComplex = val !== null && typeof val === 'object' && !Array.isArray(val);
-                
-                paths[pointerPath] = { key, value: val, isComplex, depth };
+                const isComplex = val !== null && typeof val === 'object';
+                const displayKey = parentIsArray ? `[${key}]` : key;
+
+                paths[pointerPath] = { key: displayKey, value: val, isComplex, depth };
                 if (isComplex) {
                     Object.assign(paths, flattenJson(val, pointerPath, depth + 1));
                 }
