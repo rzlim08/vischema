@@ -34,10 +34,29 @@ export default {
         // Persists across re-renders triggered by model changes.
         const collapsed = new Set();
 
+        // Seed the initial collapse state once from the `collapsed` trait.
+        // Modes: "none" (default), "all" (every complex section), or
+        // "arrays" (array sections only). Runs once so it never clobbers a
+        // user's manual toggles on later re-renders.
+        let seeded = false;
+        const seedCollapse = (flatPaths) => {
+            const mode = model.get("collapsed") || "none";
+            if (mode === "none") return;
+            Object.keys(flatPaths).forEach(pointerPath => {
+                const node = flatPaths[pointerPath];
+                if (!node.isComplex) return;
+                if (mode === "all" || (mode === "arrays" && Array.isArray(node.value))) {
+                    collapsed.add(pointerPath);
+                }
+            });
+        };
+
         const renderRows = () => {
             const data = model.get("json_data") || {};
             const errors = model.get("schema_errors") || {};
             const flatPaths = flattenJson(data);
+
+            if (!seeded) { seedCollapse(flatPaths); seeded = true; }
 
             container.innerHTML = `<div class="schema-editor-fields"></div>`;
             const fieldsWrapper = container.querySelector(".schema-editor-fields");
@@ -134,6 +153,8 @@ export default {
 
         model.on("change:json_data", renderRows);
         model.on("change:schema_errors", renderRows);
+        // Re-seed if the collapse mode is changed at runtime.
+        model.on("change:collapsed", () => { collapsed.clear(); seeded = false; renderRows(); });
         renderRows();
     }
 };

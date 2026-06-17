@@ -110,10 +110,15 @@ def _():
 
 @app.cell
 def _(image_payload, image_schema, mo, vischema):
+    # `collapsed` controls the initial fold state:
+    #   False / "none"  -> everything expanded (default)
+    #   True  / "all"   -> every complex section starts collapsed
+    #   "arrays"        -> only array sections start collapsed
     editor = mo.ui.anywidget(
         vischema.SchemaEditor(
             initial_data=image_payload,
             schema=image_schema,
+            collapsed="arrays",
         )
     )
 
@@ -133,6 +138,11 @@ def _(editor, image_payload, mo):
         mo.md("**Active validation errors:**"),
         schema_errors if schema_errors else "None (Valid!)",
     ])
+    return
+
+
+@app.cell
+def _():
     return
 
 

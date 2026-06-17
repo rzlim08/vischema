@@ -18,19 +18,35 @@ class SchemaEditor(anywidget.AnyWidget):
     # Dual-channel traitlets mapped live to the browser UI
     json_data = traitlets.Dict({}).tag(sync=True)
     schema_errors = traitlets.Dict({}).tag(sync=True)
-    
+    # Initial collapse state for complex sections: "none", "all", or "arrays".
+    collapsed = traitlets.Unicode("none").tag(sync=True)
+
     def __init__(
         self,
         initial_data: dict,
         schema_path: str | dict | SchemaDefinition = None,
         target_class: str = None,
         schema: str | dict | SchemaDefinition = None,
+        collapsed: bool | str = False,
         **kwargs
     ):
         super().__init__(**kwargs)
-        
+
         self._initial_data = initial_data
         self._target_class = target_class
+
+        # Normalize the collapse parameter into the trait's string mode.
+        # True -> collapse every complex section; False -> none; or pass
+        # "arrays"/"all"/"none" explicitly to collapse only arrays, etc.
+        if isinstance(collapsed, bool):
+            self.collapsed = "all" if collapsed else "none"
+        elif collapsed in ("none", "all", "arrays"):
+            self.collapsed = collapsed
+        else:
+            raise ValueError(
+                "collapsed must be a bool or one of 'none', 'all', 'arrays'; "
+                f"got {collapsed!r}"
+            )
 
         # Determine and normalize schema input
         schema_input = schema if schema is not None else schema_path
