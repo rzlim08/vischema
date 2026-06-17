@@ -30,22 +30,61 @@ export default {
         container.className = "schema-editor-container";
         el.appendChild(container);
 
+        // Tracks which complex sections (objects/arrays) are collapsed.
+        // Persists across re-renders triggered by model changes.
+        const collapsed = new Set();
+
+        // Seed the initial collapse state once from the `collapsed` trait.
+        // Modes: "none" (default), "all" (every complex section), or
+        // "arrays" (array sections only). Runs once so it never clobbers a
+        // user's manual toggles on later re-renders.
+        let seeded = false;
+        const seedCollapse = (flatPaths) => {
+            const mode = model.get("collapsed") || "none";
+            if (mode === "none") return;
+            Object.keys(flatPaths).forEach(pointerPath => {
+                const node = flatPaths[pointerPath];
+                if (!node.isComplex) return;
+                if (mode === "all" || (mode === "arrays" && Array.isArray(node.value))) {
+                    collapsed.add(pointerPath);
+                }
+            });
+        };
+
         const renderRows = () => {
             const data = model.get("json_data") || {};
             const errors = model.get("schema_errors") || {};
             const flatPaths = flattenJson(data);
+
+            if (!seeded) { seedCollapse(flatPaths); seeded = true; }
 
             container.innerHTML = `<div class="schema-editor-fields"></div>`;
             const fieldsWrapper = container.querySelector(".schema-editor-fields");
 
             Object.keys(flatPaths).forEach(pointerPath => {
                 const node = flatPaths[pointerPath];
-                
+
+                // Hide any row that lives under a collapsed ancestor section.
+                const isHidden = [...collapsed].some(c => pointerPath.startsWith(c + '/'));
+                if (isHidden) return;
+
                 if (node.isComplex) {
+                    const isCollapsed = collapsed.has(pointerPath);
+                    const isArray = Array.isArray(node.value);
+                    const count = isArray ? ` (${node.value.length})` : '';
+
                     const sectionHeader = document.createElement("div");
                     sectionHeader.className = "schema-section-header";
                     sectionHeader.style.paddingLeft = `${node.depth * 16}px`;
-                    sectionHeader.innerHTML = `<span>${node.key}</span>`;
+                    sectionHeader.innerHTML = `
+                        <span class="schema-section-toggle ${isCollapsed ? 'collapsed' : ''}">▾</span>
+                        <span>${node.key}${count}</span>
+                    `;
+                    sectionHeader.addEventListener("click", () => {
+                        if (collapsed.has(pointerPath)) collapsed.delete(pointerPath);
+                        else collapsed.add(pointerPath);
+                        renderRows();
+                    });
                     fieldsWrapper.appendChild(sectionHeader);
                     return;
                 }
@@ -114,6 +153,8 @@ export default {
 
         model.on("change:json_data", renderRows);
         model.on("change:schema_errors", renderRows);
+        // Re-seed if the collapse mode is changed at runtime.
+        model.on("change:collapsed", () => { collapsed.clear(); seeded = false; renderRows(); });
         renderRows();
     }
 };
