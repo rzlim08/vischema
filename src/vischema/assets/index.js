@@ -30,6 +30,10 @@ export default {
         container.className = "schema-editor-container";
         el.appendChild(container);
 
+        // Tracks which complex sections (objects/arrays) are collapsed.
+        // Persists across re-renders triggered by model changes.
+        const collapsed = new Set();
+
         const renderRows = () => {
             const data = model.get("json_data") || {};
             const errors = model.get("schema_errors") || {};
@@ -40,12 +44,28 @@ export default {
 
             Object.keys(flatPaths).forEach(pointerPath => {
                 const node = flatPaths[pointerPath];
-                
+
+                // Hide any row that lives under a collapsed ancestor section.
+                const isHidden = [...collapsed].some(c => pointerPath.startsWith(c + '/'));
+                if (isHidden) return;
+
                 if (node.isComplex) {
+                    const isCollapsed = collapsed.has(pointerPath);
+                    const isArray = Array.isArray(node.value);
+                    const count = isArray ? ` (${node.value.length})` : '';
+
                     const sectionHeader = document.createElement("div");
                     sectionHeader.className = "schema-section-header";
                     sectionHeader.style.paddingLeft = `${node.depth * 16}px`;
-                    sectionHeader.innerHTML = `<span>${node.key}</span>`;
+                    sectionHeader.innerHTML = `
+                        <span class="schema-section-toggle ${isCollapsed ? 'collapsed' : ''}">▾</span>
+                        <span>${node.key}${count}</span>
+                    `;
+                    sectionHeader.addEventListener("click", () => {
+                        if (collapsed.has(pointerPath)) collapsed.delete(pointerPath);
+                        else collapsed.add(pointerPath);
+                        renderRows();
+                    });
                     fieldsWrapper.appendChild(sectionHeader);
                     return;
                 }
