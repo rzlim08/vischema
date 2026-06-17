@@ -14,78 +14,76 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        # Collapsible Array / Object Sections
+    mo.md("""
+    # Collapsible Array / Object Sections
 
-        Manual test for the collapsible-sections feature.
+    Manual test for the collapsible-sections feature.
 
-        The payload below has a long `channels` **array of objects**, each
-        channel carrying a nested `biological_annotation` **object**. Every
-        complex section header renders a `▾` toggle:
+    The payload below has a long `channels` **array of objects**, each
+    channel carrying a nested `biological_annotation` **object**. Every
+    complex section header renders a `▾` toggle:
 
-        - Click **CHANNELS** to fold the whole array (header shows the count,
-          e.g. `CHANNELS (4)`).
-        - Click an individual `[0]`, `[1]`, … to fold a single channel.
-        - Click `biological_annotation` to fold just the nested object.
+    - Click **CHANNELS** to fold the whole array (header shows the count,
+      e.g. `CHANNELS (4)`).
+    - Click an individual `[0]`, `[1]`, … to fold a single channel.
+    - Click `biological_annotation` to fold just the nested object.
 
-        Primitive arrays (`shard_shape`, `chunk_shape`) stay as plain inputs —
-        no toggle, since they aren't tall.
-        """
-    )
+    Primitive arrays (`shard_shape`, `chunk_shape`) stay as plain inputs —
+    no toggle, since they aren't tall.
+    """)
     return
 
 
 @app.cell
-def _(mo, vischema):
-    # Inline LinkML schema with an array-of-objects (channels) and a nested
-    # object (biological_annotation) so every kind of collapsible section
-    # is exercised.
-    image_schema = """
-id: image_metadata_schema
-name: image_metadata_schema
-imports:
-  - linkml:types
-classes:
-  ImageMetadata:
-    tree_root: true
-    attributes:
-      version:
-        range: string
-      url:
-        range: string
-      shard_shape:
-        range: integer
-        multivalued: true
-      chunk_shape:
-        range: integer
-        multivalued: true
-      channels:
-        range: Channel
-        multivalued: true
-        inlined_as_list: true
-  Channel:
-    attributes:
-      name:
-        range: string
-        required: true
-      index:
-        range: integer
-      channel_type:
-        range: string
-      description:
-        range: string
-      biological_annotation:
-        range: BiologicalAnnotation
-        inlined: true
-  BiologicalAnnotation:
-    attributes:
-      cell_type:
-        range: string
-      marker:
-        range: string
-"""
+def _():
+    # Schema defined as a dict (not an inline YAML string) so marimo's
+    # auto-formatter can't mangle the significant indentation. It has an
+    # array-of-objects (channels) and a nested object (biological_annotation)
+    # so every kind of collapsible section is exercised.
+    image_schema = {
+        "id": "image_metadata_schema",
+        "name": "image_metadata_schema",
+        "imports": ["linkml:types"],
+        "classes": {
+            "ImageMetadata": {
+                "tree_root": True,
+                "attributes": {
+                    "version": {"range": "string"},
+                    "url": {"range": "string"},
+                    "shard_shape": {"range": "integer", "multivalued": True},
+                    "chunk_shape": {"range": "integer", "multivalued": True},
+                    "channels": {
+                        "range": "Channel",
+                        "multivalued": True,
+                        "inlined_as_list": True,
+                    },
+                },
+            },
+            "Channel": {
+                "attributes": {
+                    "name": {"range": "string", "required": True},
+                    "index": {"range": "integer"},
+                    "channel_type": {"range": "string"},
+                    "description": {"range": "string"},
+                    "biological_annotation": {
+                        "range": "BiologicalAnnotation",
+                        "inlined": True,
+                    },
+                },
+            },
+            "BiologicalAnnotation": {
+                "attributes": {
+                    "cell_type": {"range": "string"},
+                    "marker": {"range": "string"},
+                },
+            },
+        },
+    }
+    return (image_schema,)
 
+
+@app.cell
+def _():
     def _channel(idx, name, ctype, desc, cell_type, marker):
         return {
             "name": name,
@@ -107,7 +105,11 @@ classes:
             _channel(3, "PanCK", "fluorescence", "Epithelial cytokeratin", "epithelial", "PanCK"),
         ],
     }
+    return (image_payload,)
 
+
+@app.cell
+def _(image_payload, image_schema, mo, vischema):
     editor = mo.ui.anywidget(
         vischema.SchemaEditor(
             initial_data=image_payload,
@@ -116,7 +118,7 @@ classes:
     )
 
     editor
-    return editor, image_payload, image_schema
+    return (editor,)
 
 
 @app.cell
